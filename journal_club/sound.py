@@ -18,11 +18,11 @@ def play_text(*txts):
         os.remove(fname.replace('.wav', '.mp3'))
         sounds.append(pyglet.media.load(fname, streaming=False))
         fnames.append(fname)
-    s = time.clock()
+    s = time.time()
     duration = max(sound.duration for sound in sounds)
     for sound in sounds:
         sound.play()
-    while time.clock() < s + duration + 0.1:
+    while time.time() < s + duration + 0.1:
         time.sleep(0.1)
     for fname in fnames:
         os.remove(fname)
@@ -31,11 +31,11 @@ def play_sound(fname, start=0, duration=None, block=False):
     sound = pyglet.media.load(fname, streaming=False)
     if duration is None:
         duration = sound.duration
-    s = time.clock()
+    s = time.time()
     p = sound.play()
     p.seek(start)
     if block:
-        while time.clock() < s + duration + 0.1 - start:
+        while time.time() < s + duration + 0.1 - start:
             time.sleep(0.1)
         p.pause()
 
