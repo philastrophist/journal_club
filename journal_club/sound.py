@@ -15,6 +15,7 @@ def play_text(*txts):
         mp3 = AudioSegment.from_mp3(fname)
         fname = fname.replace('.mp3', '.wav')
         mp3.export(fname, format='wav')
+        os.remove(fname.replace('.wav', '.mp3'))
         sounds.append(pyglet.media.load(fname, streaming=False))
         fnames.append(fname)
     s = time.clock()
