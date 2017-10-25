@@ -1,1 +1,1 @@
-An command line interface to a  weighted scheme to select a person to present at a journal club
+A command line interface to a  weighted scheme to select a person to present at a journal club
