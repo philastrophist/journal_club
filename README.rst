@@ -4,6 +4,7 @@ Install with ``pip install journal_club``
 Use with:
 .. code-block:: bash
     $ jc create person1 person2 person3 ...
+    
     $ jc choose person1 person2
 
 This creates a csv with 3 people and then chooses between them. 
