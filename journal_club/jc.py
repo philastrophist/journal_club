@@ -14,7 +14,7 @@ def _input(x):
         return input(x)
 
 here = os.path.dirname(__file__)
-countdown_mp3 = os.path.join(where_jc, 'countdown.mp3')
+countdown_mp3 = os.path.join(where_jc, 'countdown.wav')
 
 def save(r, record_csv):
     update(r).to_csv(record_csv)
