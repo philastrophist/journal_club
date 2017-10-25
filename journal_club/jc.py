@@ -54,7 +54,6 @@ def pretty_choose(record, duration=5, freq=10):
         sys.stdout.flush()
         previous = len(txt)
     print()
-    play_text("{}, your number's up".format(name))
     return name
 
 
@@ -84,6 +83,7 @@ def choose(args):
     record['meetings_since_turn'] += 1
     record.loc[choice, 'meetings_since_turn'] -= 1
     save(record, args.record_csv)
+    play_text("{}, your number's up".format(name))
 
 
 def show(args):
