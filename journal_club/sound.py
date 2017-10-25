@@ -2,6 +2,7 @@ import time
 import os
 import pyglet
 from gtts import gTTS
+from pydub import AudioSegment
 
 def play_text(*txts):
     sounds = []
@@ -11,6 +12,9 @@ def play_text(*txts):
         fname = 'voice{}.mp3'.format(i)
         with open(fname, 'wb') as file:
             g.write_to_fp(file)
+        mp3 = AudioSegment.from_mp3(fname)
+        fname = fname.replace('.mp3', '.wav')
+        mp3.export(fname, format='wav')
         sounds.append(pyglet.media.load(fname, streaming=False))
         fnames.append(fname)
     s = time.clock()

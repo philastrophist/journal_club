@@ -13,7 +13,7 @@ EMAIL = 'shaun.c.read@gmail.com'
 AUTHOR = 'philastrophist'
 
 # What packages are required for this module to be executed?
-REQUIRED = ['numpy', 'pandas', 'pyglet', 'gtts']
+REQUIRED = ['numpy', 'pandas', 'pyglet', 'gtts', 'pydub']
 
 # The rest you shouldn't have to touch too much :)
 # ------------------------------------------------
