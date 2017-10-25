@@ -1,3 +1,0 @@
-[console_scripts]
-jc = journal_club.jc:main
-
