@@ -83,7 +83,7 @@ def choose(args):
     record['meetings_since_turn'] += 1
     record.loc[choice, 'meetings_since_turn'] -= 1
     save(record, args.record_csv)
-    play_text("{}, your number's up".format(name))
+    play_text("{}, your number's up".format(choice))
 
 
 def show(args):
