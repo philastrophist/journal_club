@@ -39,16 +39,3 @@ def algorithm(df, verbose=False):
     df['weight'] = weighting(df.turns, df.misses, df.attendences, len(df), df.turns.sum(), df.meetings_since_turn, 10000, 1, 1, 10)
     df['weight'] = probs(df['weight'], maximum=1, minimum=0.01, verbose=verbose)
     return df
-
-
-def simulate(df, n):
-    # df.loc['jon', 'attendences'] += 1
-    # df.loc['jon', 'turns'] += 1
-    np.random.seed(0)
-    chosen = []
-    for i in range(n):
-        df = algorithm(df)
-        chosen.append(df.sample(n=1, weights='weight').index[0])
-        df.loc[chosen[-1], 'turns'] += 1
-        df.loc[:, 'attendences'] += 1
-    return algorithm(df)
