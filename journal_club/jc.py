@@ -57,9 +57,10 @@ def validate_file(function):
 
 
 def create_new(args):
-    print("Initialising with {}".format(','.join(args.attendences)))
+    names = list(set(args.attendences + args.missing))
+    print("Initialising with {}".format(','.join(names)))
     t = pd.DataFrame(columns=['name', 'turns', 'misses', 'attendences', 'meetings_since_turn', 'weight'])
-    t['name'] = args.attendences
+    t['name'] = names
     t['turns'] = [0]*len(t)
     t['misses'] = [0]*len(t)
     t['attendences'] = [0]*len(t)
@@ -117,23 +118,25 @@ def show_probabilities(record):
 
 def choose(args):
     attend = args.attendences
+    missing = args.missing
     record = get_record(args)
-    all_names = list(set(record.index.values.tolist() + attend))
-    record = update(record.loc[all_names], verbose=args.verbose)
-    names = record.index.values if attend is None else attend
 
-    for n in set(all_names) - set(names):
-        record.loc[n, 'misses'] += 1
+    all_names = set(record.index.values.tolist() + attend + missing)
+    missing = (set(all_names) & set(missing)) - set(attend)
+    record = update(record.reindex(all_names), verbose=args.verbose)
 
-    subset = record.loc[names]
+    record.loc[missing, 'misses'] += 1
+
+    subset = record.loc[attend]
     subset = update(subset, verbose=args.verbose)
     show_probabilities(subset)
     choice = pretty_choose(subset)
-    record.loc[choice, 'turns'] += 1
-    record.loc[names, 'attendences'] += 1
 
+    record.loc[choice, 'turns'] += 1
+    record.loc[attend, 'attendences'] += 1
     record['meetings_since_turn'] += 1
-    record.loc[choice, 'meetings_since_turn'] -= 1
+    record.loc[choice, 'meetings_since_turn'] = 0
+
     save(record, args.record_csv)
     play_text("{}, your number's up".format(choice))
 
@@ -173,6 +176,7 @@ def main():
     choose_parser = subparsers.add_parser('choose', help='Run the choosertron and pick a person from the given list (attendences). '\
                                                           'Creates database if needed')
     choose_parser.add_argument('attendences', nargs='+', help='The people that are in attendence')
+    choose_parser.add_argument('--missing', nargs='+', default=[], help='Include people that should be here but aren\'t. Use if you\'re feeling mean')
     choose_parser.set_defaults(func=choose)
 
     subparsers.add_parser('reset', help='Deletes the record file. Runs `rm RECORD_CSV`').set_defaults(func=reset)
