@@ -118,11 +118,12 @@ def show_probabilities(record):
 
 def choose(args):
     attend = args.attendences
-    missed = args.missing
+    missing = args.missing
     record = get_record(args)
-    all_names = set(record.index.values.tolist() + attend + missed)
-    missing = set(all_names) - set(attend)
-    record = update(record.loc[all_names], verbose=args.verbose)
+
+    all_names = set(record.index.values.tolist() + attend + missing)
+    missing = (set(all_names) & set(missing)) - set(attend)
+    record = update(record.reindex(all_names), verbose=args.verbose)
 
     record.loc[missing, 'misses'] += 1
 
