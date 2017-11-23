@@ -123,8 +123,6 @@ def choose(args):
 
     all_names = set(record.index.values.tolist() + attend + missing)
     missing = (set(all_names) & set(missing)) - set(attend)
-    # new_missing = set(missing) - set(all_names)
-    # old_missing = set(all_missing) - set(new_missing)
     record = update(record.reindex(all_names), verbose=args.verbose)
 
     record.loc[missing, 'misses'] += 1
