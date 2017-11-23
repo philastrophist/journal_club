@@ -10,7 +10,7 @@ def weighting(turns, misses, attendences, npeople, nmeetings, meetings_since_tur
     return w
 
 
-def probs(weights, minimum=None, minimum_factor=None, maximum=None, max_difference=None):
+def probs(weights, minimum=None, minimum_factor=None, maximum=None, max_difference=None, verbose=False):
     p = weights / weights.sum()
 
     if (maximum is not None) and (minimum is not None):
@@ -24,7 +24,7 @@ def probs(weights, minimum=None, minimum_factor=None, maximum=None, max_differen
     if minimum >= (1. / len(p)):
         return (p / p) * (1. / len(p))
     filt = p < minimum
-    if filt.sum() > 0:
+    if (filt.sum() > 0) and verbose:
         print('{} are adjusted up to the minimum {:.2%}'.format(', '.join(p[filt].index.values), minimum))
     p[filt] = minimum  # set those below min to min
     adjust = 1 - p.sum()  # amount over 1
@@ -35,9 +35,9 @@ def probs(weights, minimum=None, minimum_factor=None, maximum=None, max_differen
     return p
 
 
-def algorithm(df):
+def algorithm(df, verbose=False):
     df['weight'] = weighting(df.turns, df.misses, df.attendences, len(df), df.turns.sum(), df.meetings_since_turn, 10000, 1, 1, 10)
-    df['weight'] = probs(df['weight'], maximum=1, minimum=0.01)
+    df['weight'] = probs(df['weight'], maximum=1, minimum=0.01, verbose=verbose)
     return df
 
 
