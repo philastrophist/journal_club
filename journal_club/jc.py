@@ -124,14 +124,14 @@ def choose(args):
     record = get_record(args)
 
     all_names = set(record.index.values.tolist() + attend + missing)
-    missing = (set(all_names) & set(missing)) - set(attend)
+    missing = (set(all_names) | set(missing)) - set(attend)
     record = update(record.reindex(all_names), verbose=args.verbose)
 
     record.loc[missing, 'misses'] += 1
 
     subset = record.loc[attend]
     subset = update(subset, verbose=args.verbose)
-    show_probabilities(subset)
+    show_probabilities(update(subset))
     choice = pretty_choose(subset)
 
     record.loc[choice, 'turns'] += 1
@@ -143,6 +143,7 @@ def choose(args):
         save(record, args.record_csv)
     else:
         print("===DRYRUN===")
+        show_probabilities(update(record))
     play_text("{}, your number's up".format(choice))
 
 
