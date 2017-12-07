@@ -141,6 +141,8 @@ def choose(args):
 
     if not args.dry_run:
         save(record, args.record_csv)
+    else:
+        print("===DRYRUN===")
     play_text("{}, your number's up".format(choice))
 
 
