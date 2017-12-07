@@ -1,3 +1,4 @@
+from __future__ import print_function
 import pandas as pd
 import numpy as np
 import os
@@ -8,6 +9,7 @@ from os import remove
 from journal_club.sound import *
 from journal_club.jc_algorithm import algorithm
 from journal_club import where_jc
+from journal_club.__version__ import __version__
 
 here = os.path.dirname(__file__)
 countdown_mp3 = os.path.join(where_jc, 'countdown.wav')
@@ -144,7 +146,12 @@ def choose(args):
 @validate_file
 def show(args):
     print("Accessing database at {}".format(args.record_csv))
-    show_probabilities(get_record(args))
+    record = get_record(args)
+    included = args.include if args.include else record.index.values.tolist()
+    excluded = args.exclude if args.exclude else []
+    names = set(included) - set(excluded)
+    record = update(record.reindex(names), verbose=args.verbose)
+    show_probabilities(record)
 
 
 @validate_file
@@ -171,7 +178,12 @@ def main():
     parser.add_argument('--debug', help='Shows error messages, tracebacks and exceptions. Not normally needed', action="store_true")
 
     show_parser = subparsers.add_parser('show', help='Shows the current record state')
+    show_parser.add_argument('--include', nargs='+', default=[], help='The people to be included')
+    show_parser.add_argument('--exclude', nargs='+', default=[], help='The people to be excluded')
     show_parser.set_defaults(func=show)
+
+    version_parser = subparsers.add_parser('version', help='Shows the current version and exits')
+    version_parser.set_defaults(func=lambda x: print(__version__))
 
     choose_parser = subparsers.add_parser('choose', help='Run the choosertron and pick a person from the given list (attendences). '\
                                                           'Creates database if needed')
