@@ -139,7 +139,8 @@ def choose(args):
     record['meetings_since_turn'] += 1
     record.loc[choice, 'meetings_since_turn'] = 0
 
-    save(record, args.record_csv)
+    if not args.dry_run:
+        save(record, args.record_csv)
     play_text("{}, your number's up".format(choice))
 
 
@@ -189,6 +190,7 @@ def main():
                                                           'Creates database if needed')
     choose_parser.add_argument('attendences', nargs='+', help='The people that are in attendence')
     choose_parser.add_argument('--missing', nargs='+', default=[], help='Include people that should be here but aren\'t. Use if you\'re feeling mean')
+    choose_parser.add_argument('--dry-run', action='store_true', help="Don't save the result")
     choose_parser.set_defaults(func=choose)
 
     subparsers.add_parser('reset', help='Deletes the record file. Runs `rm RECORD_CSV`').set_defaults(func=reset)
