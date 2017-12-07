@@ -146,7 +146,12 @@ def choose(args):
 @validate_file
 def show(args):
     print("Accessing database at {}".format(args.record_csv))
-    show_probabilities(get_record(args))
+    record = get_record(args)
+    included = args.include if args.include else record.index.values.tolist()
+    excluded = args.exclude if args.exclude else []
+    names = set(included) - set(excluded)
+    record = update(record.reindex(names), verbose=args.verbose)
+    show_probabilities(record)
 
 
 @validate_file
@@ -173,6 +178,8 @@ def main():
     parser.add_argument('--debug', help='Shows error messages, tracebacks and exceptions. Not normally needed', action="store_true")
 
     show_parser = subparsers.add_parser('show', help='Shows the current record state')
+    show_parser.add_argument('--include', nargs='+', default=[], help='The people to be included')
+    show_parser.add_argument('--exclude', nargs='+', default=[], help='The people to be excluded')
     show_parser.set_defaults(func=show)
 
     version_parser = subparsers.add_parser('version', help='Shows the current version and exits')
