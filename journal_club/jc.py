@@ -170,6 +170,14 @@ def reset(args):
     print("File removed...")
 
 
+def test(args):
+    play_text('This is a test')
+    duration = 3
+    play_sound(countdown_mp3, 32-duration, block=False)
+    time.sleep(duration)
+    print("Test finished")
+
+
 def main():
     import argparse
     parser = argparse.ArgumentParser('jc')
@@ -198,6 +206,7 @@ def main():
 
     subparsers.add_parser('reset', help='Deletes the record file. Runs `rm RECORD_CSV`').set_defaults(func=reset)
     subparsers.add_parser('validate', help='Validates the record file.').set_defaults(func=validate)
+    subparsers.add_parser('soundtest', help='tests the sound playback').set_defaults(func=test)
 
     args = parser.parse_args()
     if hasattr(args, 'func'):
