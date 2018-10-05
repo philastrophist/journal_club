@@ -13,3 +13,5 @@ Run again with `$ jc choose person3 new_person ...`.
 
 All information is automatically updated and stored. 
 `choose` is usually the only command you need.
+
+`$ jc --help` will display how to use journal_club
