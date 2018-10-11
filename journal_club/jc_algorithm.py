@@ -1,41 +1,48 @@
+import pandas as pd
 import numpy as np
-
-def weighting(turns, misses, attendences, npeople, nmeetings, meetings_since_turn, punishment, at_delta, floor, attack):
-    delta = misses - turns
-    opportunities = attendences + misses
-    boost = np.log((punishment - 1) * floor) / at_delta
-    w = boost * (delta / opportunities)
-    w = floor + np.exp(w.fillna(0)) - 1
-    w *= attack / npeople * np.log(meetings_since_turn+1) + 1
-    return w
+import time
+from  tqdm import tqdm
+import matplotlib.pyplot as plt
 
 
-def probs(weights, minimum=None, minimum_factor=None, maximum=None, max_difference=None, verbose=False):
-    p = weights / weights.sum()
-
-    if (maximum is not None) and (minimum is not None):
-        minimum_factor = minimum * len(p)
-    elif max_difference is not None:
-        minimum_factor = 1 - max_difference
-    if minimum_factor is not None:
-        minimum = minimum_factor * 1. / len(p)
-    else:
-        raise ValueError("Specify minimum and maximum, or max_difference or minimum_factor")
-    if minimum >= (1. / len(p)):
-        return (p / p) * (1. / len(p))
-    filt = p < minimum
-    if (filt.sum() > 0) and verbose:
-        print('{} are adjusted up to the minimum {:.2%}'.format(', '.join(p[filt].index.values), minimum))
-    p[filt] = minimum  # set those below min to min
-    adjust = 1 - p.sum()  # amount over 1
-    rest = p[~filt] / p[~filt].sum()  # fraction of probabilty of unminimised ones
-    p[~filt] += rest * adjust  # add the appropriate adjustment on the unminimised ones
-    if (p < minimum).any():
-        p = probs(p, minimum_factor=minimum_factor)
-    return p
+def window(x):
+    return np.exp(-x)
 
 
-def algorithm(df, verbose=False):
-    df['weight'] = weighting(df.turns, df.misses, df.attendences, len(df), df.turns.sum(), df.meetings_since_turn, 10000, 1, 1, 10)
-    df['weight'] = probs(df['weight'], maximum=1, minimum=0.01, verbose=verbose)
-    return df
+def transform(x, d):
+    return 1 / (1 + np.exp(-x*d))
+
+
+def values(df):
+    players = set([j for i in df.attendence.str.split(',').values for j in i])
+
+    turns = pd.DataFrame(index=df.index, columns=players) * 0
+    misses = turns.copy()
+    attendences = turns.copy()
+    for player in players:
+        turns[player] = df['turn'] == player
+        misses[player] = df['attendence'].apply(lambda x: player not in x)
+        misses.loc[:misses[player].idxmin(), player] = False
+        attendences[player] = df['attendence'].apply(lambda x: player in x)
+    return turns, misses, attendences
+
+
+def weightings(df):
+    turns, misses, attendences = values(df)
+    weight = misses.astype(float).copy() * 0
+
+    for i in df.index:
+        m = misses.loc[i].values[None, :] * window(attendences.loc[i:].cumsum()).values
+        weight.loc[i:] += m
+
+        t = turns.loc[i].values[None, :] * window((~turns).loc[i:].cumsum()).values  # [:, None]
+        weight.loc[i:] -= t
+
+    return weight, misses, turns
+
+
+def algorithm(df):
+    weights, misses, turns = weightings(df)
+    probs = transform(weights, len(weights.columns))
+    probs = probs.div(probs.sum('columns'), 'index')
+    return probs

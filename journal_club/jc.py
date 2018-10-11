@@ -15,17 +15,6 @@ here = os.path.dirname(__file__)
 countdown_mp3 = os.path.join(where_jc, 'countdown.wav')
 
 
-def show_message(exception):
-    try:
-        message = str(e)
-    except:
-        try:
-            message = unicode(e)
-        except:
-            message = ''
-    return message
-
-
 def _input(x):
     try:
         return raw_input(x)
@@ -34,13 +23,14 @@ def _input(x):
 
 
 def save(r, record_csv, verbose=False):
-    update(r, verbose=verbose).to_csv(record_csv)
+    r.to_csv(record_csv)
 
 
-def update(record, verbose=False):
+def get_probs(record, attended=None):
     r = record.copy()
-    r.fillna(0, inplace=True)
-    r = algorithm(r, verbose=verbose)
+    r = algorithm(r)
+    if attended is not None:
+        r = r[attended]
     return r
 
 
@@ -50,7 +40,7 @@ def validate_file(function):
             raise IOError("Record csv {} does not exist. Run `choose` at least once!".format(args.record_csv))
         
         record = get_record(args)
-        cols = ['turns', 'misses', 'attendences', 'meetings_since_turn', 'weight']
+        cols = ['turn', 'attendence']
         missing = [i for i in cols if i not in record.columns]
         if missing:
             raise IOError("{} is not a valid record_csv file. {} columns are missing".format(args.record_csv, missing))
@@ -61,14 +51,7 @@ def validate_file(function):
 def create_new(args):
     names = list(set(args.attendences + args.missing))
     print("Initialising with {}".format(','.join(names)))
-    t = pd.DataFrame(columns=['name', 'turns', 'misses', 'attendences', 'meetings_since_turn', 'weight'])
-    t['name'] = names
-    t['turns'] = [0]*len(t)
-    t['misses'] = [0]*len(t)
-    t['attendences'] = [0]*len(t)
-    t['meetings_since_turn'] = [0]*len(t)
-    t['weight'] = 1. / len(t)
-    t = t.set_index('name')
+    t = pd.DataFrame([','.join(names), ''], columns=['attendence', 'turn'])
     if os.path.exists(args.record_csv):
         yn = _input('overwrite previous records? (press enter to continue)')
         save(t, args.record_csv)
@@ -80,16 +63,17 @@ def create_new(args):
 
 def get_record(args):
     try:
-        record = pd.read_csv(args.record_csv).set_index('name')
+        record = pd.read_csv(args.record_csv)
     except IOError:
         create_new(args)
         record = get_record(args)
-    return update(record, verbose=args.verbose)
+    return record
 
 
 def pretty_choose(record, duration=5, freq=10):
-    choices = np.random.choice(record.index, p=record.weight, size=duration*freq)
-    max_len = max(map(len, record.index.values))
+    probs = get_probs(record).iloc[-1]
+    choices = np.random.choice(probs.index.values, p=probs.values, size=duration*freq)
+    max_len = max(map(len, probs.index.values))
     times = np.arange(len(choices))**3.
     times /= times.sum()
     times *= duration
@@ -113,37 +97,26 @@ def pretty_choose(record, duration=5, freq=10):
 
 
 def show_probabilities(record):
-    record.sort_values('weight', ascending=False, inplace=True)
-    for i, (name, r) in enumerate(record.iterrows()):
-        print('{}. {} = {:.1%}'.format(i+1, name, r.weight))
+    probs = get_probs(record).sort_values(ascending=False)
+    for i, (name, r) in enumerate(probs.iteritems()):
+        print('{}. {} = {:.1%}'.format(i+1, name, r))
 
 
 def choose(args):
     attend = args.attendences
-    missing = args.missing
     record = get_record(args)
+    probs = get_probs(record, attend)
 
-    all_names = set(record.index.values.tolist() + attend + missing)
-    missing = (set(all_names) | set(missing)) - set(attend)
-    record = update(record.reindex(all_names), verbose=args.verbose)
+    show_probabilities(probs)
+    choice = pretty_choose(probs)
 
-    record.loc[missing, 'misses'] += 1
-
-    subset = record.loc[attend]
-    subset = update(subset, verbose=args.verbose)
-    show_probabilities(update(subset))
-    choice = pretty_choose(subset)
-
-    record.loc[choice, 'turns'] += 1
-    record.loc[attend, 'attendences'] += 1
-    record['meetings_since_turn'] += 1
-    record.loc[choice, 'meetings_since_turn'] = 0
+    record.loc[len(record)] = ','.join(attend), choice
 
     if not args.dry_run:
         save(record, args.record_csv)
     else:
         print("===DRYRUN===")
-        show_probabilities(update(record))
+        show_probabilities(probs)
     play_text("{}, your number's up".format(choice))
 
 
@@ -154,8 +127,8 @@ def show(args):
     included = args.include if args.include else record.index.values.tolist()
     excluded = args.exclude if args.exclude else []
     names = set(included) - set(excluded)
-    record = update(record.reindex(names), verbose=args.verbose)
-    show_probabilities(record)
+    probs = get_probs(record)[names]
+    show_probabilities(probs)
 
 
 @validate_file
@@ -200,7 +173,6 @@ def main():
     choose_parser = subparsers.add_parser('choose', help='Run the choosertron and pick a person from the given list (attendences). '\
                                                           'Creates database if needed')
     choose_parser.add_argument('attendences', nargs='+', help='The people that are in attendence')
-    choose_parser.add_argument('--missing', nargs='+', default=[], help='Include people that should be here but aren\'t. Use if you\'re feeling mean')
     choose_parser.add_argument('--dry-run', action='store_true', help="Don't save the result")
     choose_parser.set_defaults(func=choose)
 
