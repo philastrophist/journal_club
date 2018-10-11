@@ -49,7 +49,7 @@ def validate_file(function):
 
 
 def create_new(args):
-    names = list(set(args.attendences + args.missing))
+    names = list(set(args.attendences))
     print("Initialising with {}".format(','.join(names)))
     t = pd.DataFrame([','.join(names), ''], columns=['attendence', 'turn'])
     if os.path.exists(args.record_csv):
