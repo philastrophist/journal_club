@@ -41,7 +41,9 @@ def weightings(df):
     return weight, misses, turns
 
 
-def algorithm(df):
+def algorithm(df, attended):
+    if len(df) == 0:
+        return pd.DataFrame([[1./len(attended)]*len(attended)], columns=attended, index=[0])
     weights, misses, turns = weightings(df)
     probs = transform(weights, len(weights.columns))
     probs = probs.div(probs.sum('columns'), 'index')

@@ -28,10 +28,8 @@ def save(r, record_csv, verbose=False):
 
 def get_probs(record, attended=None):
     r = record.copy()
-    r = algorithm(r)
-    if attended is not None:
-        r = r[attended]
-    return r
+    p = algorithm(r, attended)
+    return p
 
 
 def validate_file(function):
@@ -51,7 +49,7 @@ def validate_file(function):
 def create_new(args):
     names = list(set(args.attendences))
     print("Initialising with {}".format(','.join(names)))
-    t = pd.DataFrame([','.join(names), ''], columns=['attendence', 'turn'])
+    t = pd.DataFrame([[0, ','.join(names), '']], columns=['i', 'attendence', 'turn']).set_index('i')
     if os.path.exists(args.record_csv):
         yn = _input('overwrite previous records? (press enter to continue)')
         save(t, args.record_csv)
@@ -61,17 +59,27 @@ def create_new(args):
         print("Created new record at {}".format(args.record_csv))
 
 
+def import_legacy(record, args):
+    last_picked = record.loc[record['meetings_since_last_turn'] == 0, 'name']
+    print("Upgrading database...")
+    record = create_new(args)
+    record.loc[0] = [','.join(args.attendences), last_picked]
+    return record
+
+
 def get_record(args):
     try:
-        record = pd.read_csv(args.record_csv)
+        record = pd.read_csv(args.record_csv).set_index('i')
+        if 'name' in record.columns:
+            record = import_legacy(record, args)
     except IOError:
         create_new(args)
         record = get_record(args)
     return record
 
 
-def pretty_choose(record, duration=5, freq=10):
-    probs = get_probs(record).iloc[-1]
+def pretty_choose(record, attended, duration=5, freq=10):
+    probs = get_probs(record, attended).iloc[-1]
     choices = np.random.choice(probs.index.values, p=probs.values, size=duration*freq)
     max_len = max(map(len, probs.index.values))
     times = np.arange(len(choices))**3.
@@ -96,8 +104,8 @@ def pretty_choose(record, duration=5, freq=10):
     return name
 
 
-def show_probabilities(record):
-    probs = get_probs(record).sort_values(ascending=False)
+def show_probabilities(probabilities):
+    probs = probabilities.iloc[-1].sort_values(ascending=False)
     for i, (name, r) in enumerate(probs.iteritems()):
         print('{}. {} = {:.1%}'.format(i+1, name, r))
 
@@ -105,12 +113,13 @@ def show_probabilities(record):
 def choose(args):
     attend = args.attendences
     record = get_record(args)
+    record.loc[len(record)] = [','.join(attend), '']
     probs = get_probs(record, attend)
 
     show_probabilities(probs)
-    choice = pretty_choose(probs)
+    choice = pretty_choose(record, attend)
 
-    record.loc[len(record)] = ','.join(attend), choice
+    record.loc[len(record)-1, 'turn'] = choice
 
     if not args.dry_run:
         save(record, args.record_csv)
@@ -124,11 +133,11 @@ def choose(args):
 def show(args):
     print("Accessing database at {}".format(args.record_csv))
     record = get_record(args)
-    included = args.include if args.include else record.index.values.tolist()
+    probs = get_probs(record)
+    included = args.include if args.include else probs.columns
     excluded = args.exclude if args.exclude else []
-    names = set(included) - set(excluded)
-    probs = get_probs(record)[names]
-    show_probabilities(probs)
+    names = list(set(included) - set(excluded))
+    show_probabilities(probs[names])
 
 
 @validate_file
@@ -182,13 +191,15 @@ def main():
 
     args = parser.parse_args()
     if hasattr(args, 'func'):
-        try:
+        if args.debug:
             args.func(args)
-        except Exception as e:
-            print("Improper usage of `jc'. Look at the help")
-            print("Error message reads: {}".format(str(e)))
-            parser.print_help()
-            if args.debug:
+        else:
+            try:
+                args.func(args)
+            except Exception as e:
+                print("Improper usage of `jc'. Look at the help")
+                print("Error message reads: {}".format(str(e)))
+                parser.print_help()
                 raise e
     else:
         parser.print_help()
