@@ -3,6 +3,7 @@ import os
 import pyglet
 from gtts import gTTS
 from pydub import AudioSegment
+import traceback
 
 def play_text(*txts):
     try:
@@ -27,9 +28,10 @@ def play_text(*txts):
             time.sleep(0.1)
         for fname in fnames:
             os.remove(fname)
-    except:
-        print("Warning: playback failed")
-
+    except Exception as e:
+        print("Warning: playback failed with the following error\n=====")
+        traceback.print_exc()
+        print("\n=====")
 
 def play_sound(fname, start=0, duration=None, block=False):
     try:
